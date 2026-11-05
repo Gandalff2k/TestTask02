@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}База знань{% endblock %}
+{% block content %}
+<h1>База знань</h1>
+<ul>
+  {% for article in articles %}
+  <li><a href="/kb/{{ article.slug }}">{{ article.title }}</a></li>
+  {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Звітник{% endblock %}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 960px; margin: 0 auto; padding: 16px; line-height: 1.5; }
+    nav a { margin-right: 16px; }
+    .text { white-space: pre-wrap; }
+    .muted { color: #666; }
+  </style>
+</head>
+<body>
+  <nav><a href="/kb">База знань</a></nav>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>

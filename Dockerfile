@@ -14,6 +14,7 @@ COPY alembic.ini ./
 COPY migrations ./migrations
 COPY app ./app
 COPY mock_helpdesk ./mock_helpdesk
+COPY kb ./kb
 RUN useradd --system --no-create-home app
 USER app
 

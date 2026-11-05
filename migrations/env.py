@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.config import get_settings
 from app.db import Base
-from app.models import Ticket  # noqa: F401
+from app.models import Article, Ticket  # noqa: F401
 
 if context.config.config_file_name is not None:
     fileConfig(context.config.config_file_name, disable_existing_loggers=False)

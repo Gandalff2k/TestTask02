@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from app.body_limit import BodySizeLimitMiddleware
 from app.config import Settings, get_settings
 from app.db import create_engine, create_session_factory
+from app.kb import router as kb_router
 from app.logs import configure_logging
 from app.webhooks import router as webhooks_router
 
@@ -27,6 +28,7 @@ def create_app(settings: Settings) -> FastAPI:
     application.state.abandoned_writes = set()
     application.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_body_bytes)
     application.include_router(webhooks_router)
+    application.include_router(kb_router)
 
     @application.exception_handler(RequestValidationError)
     async def validation_error_handler(_: Request, exc: RequestValidationError) -> JSONResponse:

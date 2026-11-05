@@ -29,7 +29,7 @@ services:
 
   migrate:
     <<: *app
-    command: alembic upgrade head
+    command: ["sh", "-c", "alembic upgrade head && python -m app.kb_seed"]
     restart: "no"
     depends_on:
       db:

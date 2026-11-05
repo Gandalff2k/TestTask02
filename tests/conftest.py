@@ -54,7 +54,7 @@ def database_url() -> str:
 async def app(database_url: str) -> AsyncIterator[FastAPI]:
     application = create_app(Settings(database_url=database_url))
     async with application.state.session_factory() as session:
-        await session.execute(text("TRUNCATE tickets"))
+        await session.execute(text("TRUNCATE tickets, articles"))
         await session.commit()
     yield application
     await application.state.engine.dispose()

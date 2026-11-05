@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,6 +13,7 @@ class Settings(BaseSettings):
 
     webhook_db_timeout_seconds: float = 1.5
     max_body_bytes: int = 1_048_576
+    kb_dir: Path = Path("kb")
 
     llm_provider: str = "groq"
     llm_api_key: SecretStr | None = None
