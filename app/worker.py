@@ -114,7 +114,7 @@ class QueueWorker[Item: (ClaimedTicket, ClaimedDelivery)]:
 
 
 @dataclass(frozen=True, slots=True)
-class WorkerConfig:
+class GenerationConfig:
     concurrency: int
     poll_seconds: float
     lease_seconds: float
@@ -124,7 +124,7 @@ class WorkerConfig:
     public_base_url: str
 
     @classmethod
-    def from_settings(cls, settings: Settings) -> "WorkerConfig":
+    def from_settings(cls, settings: Settings) -> "GenerationConfig":
         return cls(
             concurrency=settings.worker_concurrency,
             poll_seconds=settings.worker_poll_seconds,
@@ -143,7 +143,7 @@ class GenerationWorker(QueueWorker[ClaimedTicket]):
         self,
         session_factory: async_sessionmaker[AsyncSession],
         provider: LLMProvider,
-        config: WorkerConfig,
+        config: GenerationConfig,
         rng: random.Random | None = None,
     ) -> None:
         super().__init__(session_factory, config.concurrency, config.poll_seconds)
@@ -346,7 +346,7 @@ async def main() -> None:
                 PostgresRateLimiter(session_factory, settings.llm_rate_limit_per_minute),
             )
             generation = GenerationWorker(
-                session_factory, provider, WorkerConfig.from_settings(settings)
+                session_factory, provider, GenerationConfig.from_settings(settings)
             )
             delivery = DeliveryWorker(
                 session_factory, helpdesk_client, DeliveryConfig.from_settings(settings)

@@ -5,7 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/opt/venv \
     PATH=/opt/venv/bin:$PATH
 WORKDIR /srv
-RUN pip install --no-cache-dir uv
+RUN pip install --no-cache-dir uv==0.13.7
 COPY pyproject.toml uv.lock ./
 
 FROM base AS prod

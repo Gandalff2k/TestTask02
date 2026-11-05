@@ -1,6 +1,13 @@
 name: support-drafts
 
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
 x-app: &app
+  logging: *logging
   build:
     context: .
     target: prod
@@ -14,6 +21,7 @@ x-app: &app
 services:
   db:
     image: postgres:16-alpine
+    logging: *logging
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-support}

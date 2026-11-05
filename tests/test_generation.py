@@ -24,7 +24,7 @@ from app.tickets import (
     insert_ticket_if_new,
     save_draft,
 )
-from app.worker import GenerationWorker, WorkerConfig
+from app.worker import GenerationConfig, GenerationWorker
 
 GOOD_OUTPUT = json.dumps(
     {"reply": "Відкрийте звіт і натисніть Експорт.", "article_ids": ["export-pdf"]}
@@ -56,7 +56,7 @@ class FakeProvider:
             self.in_flight -= 1
 
 
-def config(**overrides: object) -> WorkerConfig:
+def config(**overrides: object) -> GenerationConfig:
     defaults: dict[str, object] = {
         "concurrency": 30,
         "poll_seconds": 0.02,
@@ -66,7 +66,7 @@ def config(**overrides: object) -> WorkerConfig:
         "retry_max_seconds": 300.0,
         "public_base_url": "https://support.example.com",
     }
-    return WorkerConfig(**(defaults | overrides))  # type: ignore[arg-type]
+    return GenerationConfig(**(defaults | overrides))  # type: ignore[arg-type]
 
 
 def worker(
