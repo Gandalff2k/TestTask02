@@ -23,7 +23,7 @@ docker compose run --rm test                             # тести, код м
 docker compose build test                                # після зміни залежностей
 docker compose run --rm test ruff check .                # лінтер
 docker compose run --rm test ruff format --check .       # форматування
-docker compose run --rm test mypy app mock_helpdesk      # типи
+docker compose run --rm test mypy app mock_helpdesk scripts   # типи
 docker compose run --rm test alembic revision --autogenerate -m "опис"   # міграція
 ```
 
@@ -35,6 +35,7 @@ docker compose run --rm test alembic revision --autogenerate -m "опис"   # �
 - `app/knowledge.py`, `app/kb.py`, `app/kb_seed.py`: база знань, пошук через `pg_trgm`, сторінки `/kb`, синхронізація з `kb/*.md`.
 - `app/operator.py`: інтерфейс оператора. Дозволені переходи статусів описані в `TRANSITIONS`, кнопки на сторінці будуються з них же. Є Basic Auth і перевірка того самого походження для POST.
 - `app/templates/`: Jinja2-шаблони, автоекранування ввімкнене.
+- `scripts/load_test.py`, `scripts/llm_rate.py`: навантажувальний прогін, що імітує хелпдеск, і підрахунок викликів LLM за хвилину з логів воркера.
 - `kb/`: статті бази знань (перший рядок `# Заголовок`, другий `tags: ...`, далі текст).
 - `app/worker.py`: окремий процес з двома чергами на спільному циклі `QueueWorker`. `GenerationWorker` генерує чернетки, `DeliveryWorker` надсилає підтверджені відповіді.
 - `app/drafts.py`: промпт, парсинг виводу моделі, чернетка з абсолютними посиланнями.
