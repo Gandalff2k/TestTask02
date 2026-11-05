@@ -7,9 +7,10 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.config import get_settings
 from app.db import Base
+from app.models import Ticket  # noqa: F401
 
 if context.config.config_file_name is not None:
-    fileConfig(context.config.config_file_name)
+    fileConfig(context.config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 
@@ -21,7 +22,8 @@ def run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    engine = create_async_engine(get_settings().database_url)
+    url = context.config.get_main_option("sqlalchemy.url") or get_settings().database_url
+    engine = create_async_engine(url)
     async with engine.connect() as connection:
         await connection.run_sync(run_migrations)
     await engine.dispose()

@@ -19,7 +19,8 @@
 
 ```bash
 docker compose up --build                                # весь сервіс
-docker compose run --rm --build test                     # тести
+docker compose run --rm test                             # тести, код монтується в контейнер
+docker compose build test                                # після зміни залежностей
 docker compose run --rm test ruff check .                # лінтер
 docker compose run --rm test ruff format --check .       # форматування
 docker compose run --rm test mypy app mock_helpdesk      # типи
@@ -28,7 +29,9 @@ docker compose run --rm test alembic revision --autogenerate -m "опис"   # �
 
 ## Архітектура
 
-- `app/main.py`: FastAPI, вебхук, `/health`, інтерфейс оператора.
+- `app/main.py`: збирання FastAPI-застосунку, `/health`.
+- `app/webhooks.py`: вебхук хелпдеску.
+- `app/models.py`, `app/tickets.py`: модель звернення і SQL до неї.
 - `app/worker.py`: окремий процес, що генерує чернетки й надсилає відповіді.
 - `app/llm/`: замінний інтерфейс LLM-провайдера.
 - `mock_helpdesk/`: мок зовнішнього хелпдеску, окремий контейнер.

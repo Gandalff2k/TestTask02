@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://support:support@localhost:5432/support"
     log_level: str = "INFO"
 
+    webhook_db_timeout_seconds: float = 1.5
+    max_body_bytes: int = 1_048_576
+
     llm_provider: str = "groq"
     llm_api_key: SecretStr | None = None
     llm_model: str | None = None
