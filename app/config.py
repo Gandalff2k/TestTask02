@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     max_body_bytes: int = 1_048_576
     kb_dir: Path = Path("kb")
     public_base_url: str = "http://localhost:8000"
+    operator_username: str = "operator"
+    operator_password: SecretStr | None = None
 
     worker_concurrency: int = 30
     worker_poll_seconds: float = 1.0
@@ -32,7 +34,7 @@ class Settings(BaseSettings):
     llm_keyless_delay_min_seconds: float = 5.0
     llm_keyless_delay_max_seconds: float = 30.0
 
-    @field_validator("llm_api_key", "llm_model", "llm_base_url", mode="before")
+    @field_validator("llm_api_key", "llm_model", "llm_base_url", "operator_password", mode="before")
     @classmethod
     def blank_to_none(cls, value: object) -> object:
         if isinstance(value, str) and not value.strip():

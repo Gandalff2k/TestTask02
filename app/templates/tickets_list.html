@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Звернення{% endblock %}
+{% block head %}<meta http-equiv="refresh" content="15">{% endblock %}
+{% block content %}
+<h1>Звернення</h1>
+<p class="filters">
+  <a href="/tickets" class="{{ 'active' if status is none }}">усі ({{ counts.values() | sum }})</a>
+  {% for value, label in labels.items() %}
+  <a href="/tickets?status={{ value.value }}" class="{{ 'active' if status == value }}">{{ label }} ({{ counts.get(value.value, 0) }})</a>
+  {% endfor %}
+</p>
+{% if tickets %}
+<table>
+  <thead>
+    <tr><th>#</th><th>Тікет</th><th>Статус</th><th>Створено (UTC)</th><th>Повідомлення</th></tr>
+  </thead>
+  <tbody>
+    {% for ticket in tickets %}
+    <tr>
+      <td><a href="/tickets/{{ ticket.id }}">{{ ticket.id }}</a></td>
+      <td>{{ ticket.ticket_id }}</td>
+      <td>{{ labels.get(ticket.status, ticket.status) }}</td>
+      <td>{{ ticket.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+      <td><a href="/tickets/{{ ticket.id }}">{{ ticket.message | truncate(90) }}</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Звернень немає.</p>
+{% endif %}
+<p>
+  {% if page > 1 %}<a href="/tickets?page={{ page - 1 }}{% if status %}&status={{ status.value }}{% endif %}">← попередня</a>{% endif %}
+  {% if has_next %}<a href="/tickets?page={{ page + 1 }}{% if status %}&status={{ status.value }}{% endif %}">наступна →</a>{% endif %}
+</p>
+<p class="muted">Сторінка оновлюється кожні 15 секунд.</p>
+{% endblock %}

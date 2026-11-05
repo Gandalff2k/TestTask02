@@ -4,15 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Звітник{% endblock %}</title>
+  {% block head %}{% endblock %}
   <style>
     body { font-family: system-ui, sans-serif; max-width: 960px; margin: 0 auto; padding: 16px; line-height: 1.5; }
     nav a { margin-right: 16px; }
     .text { white-space: pre-wrap; }
     .muted { color: #666; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border-bottom: 1px solid #ddd; padding: 6px; text-align: left; vertical-align: top; }
+    .box { border: 1px solid #ccc; padding: 12px; margin: 8px 0; }
+    .notice { background: #eef6ee; padding: 8px; }
+    .warning { background: #fdf3e7; padding: 8px; }
+    .actions form { display: inline; margin-right: 8px; }
+    .filters a { margin-right: 12px; }
+    .filters a.active { font-weight: bold; }
   </style>
 </head>
 <body>
-  <nav><a href="/kb">База знань</a></nav>
+  <nav><a href="/tickets">Звернення</a><a href="/kb">База знань</a></nav>
   <main>{% block content %}{% endblock %}</main>
 </body>
 </html>

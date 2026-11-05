@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Звернення {{ ticket.ticket_id }}{% endblock %}
+{% block content %}
+<p><a href="/tickets">← до списку</a></p>
+<h1>Звернення {{ ticket.ticket_id }}</h1>
+
+{% if result == "done" %}
+<p class="notice">Готово.</p>
+{% elif result == "stale" %}
+<p class="warning">Статус уже змінився, дію не застосовано. Нижче показано поточний стан.</p>
+{% endif %}
+
+<table>
+  <tr><th>Статус</th><td>{{ labels.get(ticket.status, ticket.status) }}</td></tr>
+  <tr><th>Клієнт</th><td>{{ ticket.customer_email }}</td></tr>
+  <tr><th>Подія</th><td>{{ ticket.event_id }}</td></tr>
+  <tr><th>Створено (UTC)</th><td>{{ ticket.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td></tr>
+  <tr><th>Спроб</th><td>{{ ticket.attempts }}</td></tr>
+  {% if ticket.last_error %}<tr><th>Остання помилка</th><td>{{ ticket.last_error }}</td></tr>{% endif %}
+</table>
+
+<h2>Повідомлення клієнта</h2>
+<div class="box text">{{ ticket.message }}</div>
+
+<h2>Чернетка відповіді</h2>
+{% if ticket.draft_text %}
+<div class="box text">{{ ticket.draft_text }}</div>
+{% if ticket.draft_sources %}
+<p>Статті, на які посилається чернетка:</p>
+<ul>
+  {% for source in ticket.draft_sources %}
+  <li><a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ source.title }}</a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="warning">У базі знань не знайшлося статей на цю тему, тож чернетка без посилань.</p>
+{% endif %}
+{% else %}
+<p class="muted">Чернетки ще немає.</p>
+{% endif %}
+
+{% if actions %}
+<div class="actions">
+  {% for action, transition in actions %}
+  <form method="post" action="/tickets/{{ ticket.id }}/{{ action.value }}">
+    <button type="submit">{{ transition.label }}</button>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

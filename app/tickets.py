@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, cast
 
-from sqlalchemy import ColumnElement, CursorResult, and_, func, text, update
+from sqlalchemy import ColumnElement, CursorResult, and_, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -140,3 +140,42 @@ async def reschedule_generation(
 
 async def fail_generation(session: AsyncSession, ticket: ClaimedTicket, error: str) -> bool:
     return await _update_owned(session, ticket, status=TicketStatus.DRAFT_FAILED, last_error=error)
+
+
+async def apply_transition(
+    session: AsyncSession,
+    ticket_id: int,
+    from_statuses: frozenset[TicketStatus],
+    to_status: TicketStatus,
+) -> bool:
+    statement = (
+        update(Ticket)
+        .where(Ticket.id == ticket_id, Ticket.status.in_(from_statuses))
+        .values(
+            status=to_status,
+            attempts=0,
+            next_attempt_at=func.now(),
+            locked_until=None,
+            last_error=None,
+        )
+    )
+    result = cast(CursorResult[Any], await session.execute(statement))
+    return result.rowcount == 1
+
+
+async def get_ticket(session: AsyncSession, ticket_id: int) -> Ticket | None:
+    return await session.get(Ticket, ticket_id)
+
+
+async def list_tickets(
+    session: AsyncSession, status: TicketStatus | None, limit: int, offset: int
+) -> list[Ticket]:
+    statement = select(Ticket).order_by(Ticket.created_at.desc(), Ticket.id.desc())
+    if status is not None:
+        statement = statement.where(Ticket.status == status)
+    return list((await session.scalars(statement.limit(limit).offset(offset))).all())
+
+
+async def count_by_status(session: AsyncSession) -> dict[str, int]:
+    rows = await session.execute(select(Ticket.status, func.count()).group_by(Ticket.status))
+    return {str(status): int(count) for status, count in rows.all()}

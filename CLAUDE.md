@@ -33,6 +33,7 @@ docker compose run --rm test alembic revision --autogenerate -m "опис"   # �
 - `app/webhooks.py`: вебхук хелпдеску.
 - `app/models.py`, `app/tickets.py`: моделі та SQL звернень, зокрема клейм черги і записи з перевіркою lease.
 - `app/knowledge.py`, `app/kb.py`, `app/kb_seed.py`: база знань, пошук через `pg_trgm`, сторінки `/kb`, синхронізація з `kb/*.md`.
+- `app/operator.py`: інтерфейс оператора. Дозволені переходи статусів описані в `TRANSITIONS`, кнопки на сторінці будуються з них же. Є Basic Auth і перевірка того самого походження для POST.
 - `app/templates/`: Jinja2-шаблони, автоекранування ввімкнене.
 - `kb/`: статті бази знань (перший рядок `# Заголовок`, другий `tags: ...`, далі текст).
 - `app/worker.py`: окремий процес. Клеймить звернення пачками, генерує до `WORKER_CONCURRENCY` паралельно, з повторами і backoff.
