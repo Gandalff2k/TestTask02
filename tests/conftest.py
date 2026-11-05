@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import AsyncIterator
+from pathlib import Path
 
 import asyncpg
 import httpx
@@ -12,7 +13,10 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import Settings, get_settings
+from app.knowledge import load_articles, sync_articles
 from app.main import create_app
+
+KB_DIR = Path(__file__).parent.parent / "kb"
 
 
 def _test_database_url() -> str:
@@ -55,6 +59,7 @@ async def app(database_url: str) -> AsyncIterator[FastAPI]:
     application = create_app(Settings(database_url=database_url))
     async with application.state.session_factory() as session:
         await session.execute(text("TRUNCATE tickets, articles"))
+        await session.execute(text("UPDATE llm_rate_limit SET next_slot = now()"))
         await session.commit()
     yield application
     await application.state.engine.dispose()
@@ -71,3 +76,10 @@ async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as http_client:
         yield http_client
+
+
+@pytest.fixture
+async def seeded(session_factory: async_sessionmaker[AsyncSession]) -> None:
+    async with session_factory() as session:
+        await sync_articles(session, load_articles(KB_DIR))
+        await session.commit()

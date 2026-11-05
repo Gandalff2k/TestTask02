@@ -31,11 +31,13 @@ docker compose run --rm test alembic revision --autogenerate -m "опис"   # �
 
 - `app/main.py`: збирання FastAPI-застосунку, `/health`.
 - `app/webhooks.py`: вебхук хелпдеску.
-- `app/models.py`, `app/tickets.py`: модель звернення і SQL до неї.
+- `app/models.py`, `app/tickets.py`: моделі та SQL звернень, зокрема клейм черги і записи з перевіркою lease.
 - `app/knowledge.py`, `app/kb.py`, `app/kb_seed.py`: база знань, пошук через `pg_trgm`, сторінки `/kb`, синхронізація з `kb/*.md`.
 - `app/templates/`: Jinja2-шаблони, автоекранування ввімкнене.
 - `kb/`: статті бази знань (перший рядок `# Заголовок`, другий `tags: ...`, далі текст).
-- `app/worker.py`: окремий процес, що генерує чернетки й надсилає відповіді.
+- `app/worker.py`: окремий процес. Клеймить звернення пачками, генерує до `WORKER_CONCURRENCY` паралельно, з повторами і backoff.
+- `app/drafts.py`: промпт, парсинг виводу моделі, чернетка з абсолютними посиланнями.
+- `app/llm/rate_limit.py`: спільний лімітер у Postgres і обгортка провайдера.
 - `app/llm/`: замінний інтерфейс LLM-провайдера.
 - `mock_helpdesk/`: мок зовнішнього хелпдеску, окремий контейнер.
 - `migrations/`: Alembic, єдине джерело схеми БД.

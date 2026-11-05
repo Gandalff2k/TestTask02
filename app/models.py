@@ -1,7 +1,17 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, Identity, Integer, Text, func, text
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    DateTime,
+    Identity,
+    Index,
+    Integer,
+    Text,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -26,7 +36,15 @@ _STATUS_VALUES = ", ".join(f"'{status.value}'" for status in TicketStatus)
 
 class Ticket(Base):
     __tablename__ = "tickets"
-    __table_args__ = (CheckConstraint(f"status IN ({_STATUS_VALUES})", name="status_valid"),)
+    __table_args__ = (
+        CheckConstraint(f"status IN ({_STATUS_VALUES})", name="status_valid"),
+        Index(
+            "ix_tickets_generation_queue",
+            "next_attempt_at",
+            "id",
+            postgresql_where=text("status IN ('received', 'generating')"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     event_id: Mapped[str] = mapped_column(Text, unique=True)
@@ -60,3 +78,11 @@ class Article(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class LLMRateLimit(Base):
+    __tablename__ = "llm_rate_limit"
+    __table_args__ = (CheckConstraint("id = 1", name="single_row"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    next_slot: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

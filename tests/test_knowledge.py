@@ -15,15 +15,7 @@ from app.knowledge import (
     sync_articles,
 )
 from app.models import Article
-
-KB_DIR = Path(__file__).parent.parent / "kb"
-
-
-@pytest.fixture
-async def seeded(session_factory: async_sessionmaker[AsyncSession]) -> None:
-    async with session_factory() as session:
-        await sync_articles(session, load_articles(KB_DIR))
-        await session.commit()
+from tests.conftest import KB_DIR
 
 
 async def stored(factory: async_sessionmaker[AsyncSession]) -> dict[str, Article]:

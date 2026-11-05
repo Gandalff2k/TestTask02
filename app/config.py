@@ -14,6 +14,14 @@ class Settings(BaseSettings):
     webhook_db_timeout_seconds: float = 1.5
     max_body_bytes: int = 1_048_576
     kb_dir: Path = Path("kb")
+    public_base_url: str = "http://localhost:8000"
+
+    worker_concurrency: int = 30
+    worker_poll_seconds: float = 1.0
+    generation_lease_seconds: float = 180.0
+    generation_max_attempts: int = 5
+    generation_retry_base_seconds: float = 5.0
+    generation_retry_max_seconds: float = 300.0
 
     llm_provider: str = "groq"
     llm_api_key: SecretStr | None = None
