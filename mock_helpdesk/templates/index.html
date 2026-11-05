@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Мок хелпдеску</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 0 auto; padding: 16px; line-height: 1.5; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border-bottom: 1px solid #ddd; padding: 6px; text-align: left; vertical-align: top; }
+    .text { white-space: pre-wrap; }
+    .duplicate { background: #fbe4e4; }
+    .muted { color: #666; }
+    textarea { width: 100%; }
+  </style>
+</head>
+<body>
+<h1>Мок хелпдеску</h1>
+<p class="muted">
+  Відповіді: 503 з імовірністю {{ settings.error_rate }}, «завис і не прийняв» {{ settings.slow_rate }},
+  «прийняв, але відповів пізно» {{ settings.accept_then_slow_rate }} (затримка {{ settings.slow_seconds }} с).
+</p>
+
+<h2>Нове звернення</h2>
+<form method="post" action="/tickets">
+  <p><textarea name="message" rows="3" required maxlength="5000" placeholder="Не можу експортувати звіт у PDF"></textarea></p>
+  <p><label>Пошта клієнта <input name="customer_email" value="customer@example.com"></label></p>
+  <p><label><input type="checkbox" name="send_twice" value="true"> надіслати подію двічі одночасно (перевірка дедуплікації)</label></p>
+  <p><button type="submit">Надіслати на вебхук сервісу</button></p>
+</form>
+
+<h2>Отримані відповіді: {{ replies | length }}, дублікатів: {{ duplicates }}</h2>
+{% if replies %}
+<table>
+  <thead><tr><th>Час (UTC)</th><th>Тікет</th><th>Поведінка мока</th><th>Текст</th></tr></thead>
+  <tbody>
+  {% for reply in replies %}
+    <tr class="{{ 'duplicate' if counts[(reply.ticket_id, reply.message)] > 1 }}">
+      <td>{{ reply.received_at.strftime("%H:%M:%S") }}</td>
+      <td>{{ reply.ticket_id }}</td>
+      <td>{{ reply.behaviour }}</td>
+      <td class="text">{{ reply.message }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Поки нічого.</p>
+{% endif %}
+
+<h2>Надіслані події</h2>
+{% if events %}
+<table>
+  <thead><tr><th>Час (UTC)</th><th>Подія</th><th>Тікет</th><th>Повідомлення</th><th>Результат доставки</th></tr></thead>
+  <tbody>
+  {% for event in events %}
+    <tr>
+      <td>{{ event.sent_at.strftime("%H:%M:%S") }}</td>
+      <td>{{ event.event_id }}</td>
+      <td>{{ event.ticket_id }}</td>
+      <td>{{ event.message | truncate(80) }}</td>
+      <td>{{ event.outcome }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Поки нічого.</p>
+{% endif %}
+</body>
+</html>

@@ -44,6 +44,12 @@ class Ticket(Base):
             "id",
             postgresql_where=text("status IN ('received', 'generating')"),
         ),
+        Index(
+            "ix_tickets_delivery_queue",
+            "next_attempt_at",
+            "id",
+            postgresql_where=text("status IN ('approved', 'sending')"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)

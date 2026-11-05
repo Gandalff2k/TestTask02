@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     generation_retry_base_seconds: float = 5.0
     generation_retry_max_seconds: float = 300.0
 
+    helpdesk_allowed_hosts: str = "mock-helpdesk"
+    delivery_concurrency: int = 5
+    delivery_lease_seconds: float = 60.0
+    delivery_max_attempts: int = 5
+    delivery_connect_timeout_seconds: float = 5.0
+    delivery_read_timeout_seconds: float = 10.0
+    delivery_retry_base_seconds: float = 5.0
+    delivery_retry_max_seconds: float = 300.0
+
     llm_provider: str = "groq"
     llm_api_key: SecretStr | None = None
     llm_model: str | None = None

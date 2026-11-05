@@ -99,24 +99,28 @@ async def claim_for_generation(
     ]
 
 
-def _owned(ticket: ClaimedTicket) -> ColumnElement[bool]:
-    return and_(
-        Ticket.id == ticket.id,
-        Ticket.status == TicketStatus.GENERATING,
-        Ticket.locked_until == ticket.lease,
+def _owned(ticket_id: int, lease: datetime, expected: TicketStatus) -> ColumnElement[bool]:
+    return and_(Ticket.id == ticket_id, Ticket.status == expected, Ticket.locked_until == lease)
+
+
+async def _update_owned(
+    session: AsyncSession, ticket_id: int, lease: datetime, expected: TicketStatus, **values: Any
+) -> bool:
+    statement = (
+        update(Ticket).where(_owned(ticket_id, lease, expected)).values(locked_until=None, **values)
     )
-
-
-async def _update_owned(session: AsyncSession, ticket: ClaimedTicket, **values: Any) -> bool:
-    statement = update(Ticket).where(_owned(ticket)).values(locked_until=None, **values)
     result = cast(CursorResult[Any], await session.execute(statement))
     return result.rowcount == 1
+
+
+async def _update_generating(session: AsyncSession, ticket: ClaimedTicket, **values: Any) -> bool:
+    return await _update_owned(session, ticket.id, ticket.lease, TicketStatus.GENERATING, **values)
 
 
 async def save_draft(
     session: AsyncSession, ticket: ClaimedTicket, text: str, sources: list[dict[str, str]]
 ) -> bool:
-    return await _update_owned(
+    return await _update_generating(
         session,
         ticket,
         status=TicketStatus.PENDING_REVIEW,
@@ -129,7 +133,7 @@ async def save_draft(
 async def reschedule_generation(
     session: AsyncSession, ticket: ClaimedTicket, delay_seconds: float, error: str
 ) -> bool:
-    return await _update_owned(
+    return await _update_generating(
         session,
         ticket,
         status=TicketStatus.RECEIVED,
@@ -139,7 +143,112 @@ async def reschedule_generation(
 
 
 async def fail_generation(session: AsyncSession, ticket: ClaimedTicket, error: str) -> bool:
-    return await _update_owned(session, ticket, status=TicketStatus.DRAFT_FAILED, last_error=error)
+    return await _update_generating(
+        session, ticket, status=TicketStatus.DRAFT_FAILED, last_error=error
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ClaimedDelivery:
+    id: int
+    event_id: str
+    ticket_id: str
+    reply_url: str
+    draft_text: str | None
+    attempts: int
+    lease: datetime
+
+
+_EXPIRE_STALE_DELIVERIES_SQL = text(
+    """
+    UPDATE tickets
+    SET status = 'delivery_unknown',
+        locked_until = NULL,
+        last_error = 'Sender stopped mid-request, the helpdesk may or may not have the reply',
+        updated_at = now()
+    WHERE status = 'sending' AND locked_until < now()
+    RETURNING id
+    """
+)
+
+_CLAIM_FOR_DELIVERY_SQL = text(
+    """
+    WITH candidates AS (
+        SELECT id
+        FROM tickets
+        WHERE status = 'approved' AND next_attempt_at <= now()
+        ORDER BY next_attempt_at, id
+        LIMIT :limit
+        FOR UPDATE SKIP LOCKED
+    )
+    UPDATE tickets AS t
+    SET status = 'sending',
+        attempts = t.attempts + 1,
+        locked_until = now() + make_interval(secs => CAST(:lease_seconds AS double precision)),
+        updated_at = now()
+    FROM candidates AS c
+    WHERE t.id = c.id
+    RETURNING t.id, t.event_id, t.ticket_id, t.reply_url, t.draft_text, t.attempts, t.locked_until
+    """
+)
+
+
+async def expire_stale_deliveries(session: AsyncSession) -> list[int]:
+    return list((await session.execute(_EXPIRE_STALE_DELIVERIES_SQL)).scalars())
+
+
+async def claim_for_delivery(
+    session: AsyncSession, limit: int, lease_seconds: float
+) -> list[ClaimedDelivery]:
+    rows = await session.execute(
+        _CLAIM_FOR_DELIVERY_SQL, {"limit": limit, "lease_seconds": lease_seconds}
+    )
+    return [
+        ClaimedDelivery(
+            id=row.id,
+            event_id=row.event_id,
+            ticket_id=row.ticket_id,
+            reply_url=row.reply_url,
+            draft_text=row.draft_text,
+            attempts=row.attempts,
+            lease=row.locked_until,
+        )
+        for row in rows
+    ]
+
+
+async def _update_sending(session: AsyncSession, delivery: ClaimedDelivery, **values: Any) -> bool:
+    return await _update_owned(session, delivery.id, delivery.lease, TicketStatus.SENDING, **values)
+
+
+async def mark_sent(session: AsyncSession, delivery: ClaimedDelivery) -> bool:
+    return await _update_sending(session, delivery, status=TicketStatus.SENT, last_error=None)
+
+
+async def reschedule_delivery(
+    session: AsyncSession, delivery: ClaimedDelivery, delay_seconds: float, error: str
+) -> bool:
+    return await _update_sending(
+        session,
+        delivery,
+        status=TicketStatus.APPROVED,
+        next_attempt_at=func.now() + timedelta(seconds=delay_seconds),
+        last_error=error,
+    )
+
+
+async def fail_delivery(session: AsyncSession, delivery: ClaimedDelivery, error: str) -> bool:
+    return await _update_sending(
+        session, delivery, status=TicketStatus.SEND_FAILED, last_error=error
+    )
+
+
+async def mark_delivery_unknown(
+    session: AsyncSession, delivery: ClaimedDelivery, error: str
+) -> bool:
+    return await _update_sending(
+        session, delivery, status=TicketStatus.DELIVERY_UNKNOWN, last_error=error
+    )
 
 
 async def apply_transition(
