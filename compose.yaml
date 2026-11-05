@@ -1,0 +1,86 @@
+name: support-drafts
+
+x-app: &app
+  build:
+    context: .
+    target: prod
+  image: support-drafts:prod
+  env_file:
+    - path: .env
+      required: false
+  environment: &app-env
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-support}:${POSTGRES_PASSWORD:-support}@db:5432/${POSTGRES_DB:-support}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-support}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-support}
+      POSTGRES_DB: ${POSTGRES_DB:-support}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *app
+    command: alembic upgrade head
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  worker:
+    <<: *app
+    command: python -m app.worker
+    restart: unless-stopped
+    stop_grace_period: 40s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  mock-helpdesk:
+    <<: *app
+    command: uvicorn mock_helpdesk.main:app --host 0.0.0.0 --port 8001
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+
+  test:
+    <<: *app
+    profiles: [test]
+    build:
+      context: .
+      target: dev
+    image: support-drafts:dev
+    command: pytest
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
