@@ -18,10 +18,11 @@
     .actions form { display: inline; margin-right: 8px; }
     .filters a { margin-right: 12px; }
     .filters a.active { font-weight: bold; }
+    .button { display: inline-block; padding: 6px 12px; border: 1px solid #888; border-radius: 4px; text-decoration: none; margin-right: 8px; }
   </style>
 </head>
 <body>
-  <nav><a href="/tickets">Звернення</a><a href="/kb">База знань</a></nav>
+  <nav>{% block nav %}<a href="/tickets">Звернення</a><a href="/kb">База знань</a>{% endblock %}</nav>
   <main>{% block content %}{% endblock %}</main>
 </body>
 </html>

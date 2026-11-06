@@ -174,3 +174,18 @@ async def test_journal_escapes_html(client_for: ClientFor) -> None:
     )
 
     assert "<script>x</script>" not in (await client.get("/")).text
+
+
+async def test_journal_makes_reply_links_clickable_and_safe(client_for: ClientFor) -> None:
+    client = client_for(mock())
+    message = (
+        "Стаття: https://support.test/kb/export-pdf\n"
+        'Підступне: http://x.test/"onmouseover="alert(1) та javascript:alert(2)'
+    )
+    await client.post("/tickets/T-1/replies", json={"ticket_id": "T-1", "message": message})
+
+    page = (await client.get("/")).text
+
+    assert '<a href="https://support.test/kb/export-pdf"' in page
+    assert 'onmouseover="alert' not in page
+    assert 'href="javascript' not in page

@@ -263,3 +263,15 @@ async def test_hanging_database_answers_within_deadline(app: FastAPI) -> None:
     await asyncio.wait_for(cleanup_finished.wait(), timeout=1.0)
     await asyncio.sleep(0)
     assert app.state.abandoned_writes == set()
+
+
+async def test_duplicates_do_not_leave_gaps_in_ids(
+    client: httpx.AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+) -> None:
+    await client.post(URL, json=payload(event_id="evt_a"))
+    for _ in range(5):
+        await client.post(URL, json=payload(event_id="evt_a"))
+    await client.post(URL, json=payload(event_id="evt_b"))
+
+    first, second = await tickets(session_factory)
+    assert second.id == first.id + 1

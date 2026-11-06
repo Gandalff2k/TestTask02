@@ -26,6 +26,7 @@ SYSTEM_PROMPT = """\
 """
 
 SOURCES_HEADING = "Корисні статті:"
+KB_INDEX_LABEL = "Уся база знань:"
 
 
 class DraftFormatError(ValueError):
@@ -77,6 +78,7 @@ def compose_draft(output: ModelDraft, hits: list[ArticleHit], public_base_url: s
     if sources:
         links = "\n".join(f"- {source['title']}: {source['url']}" for source in sources)
         text = f"{text}\n\n{SOURCES_HEADING}\n{links}"
+    text = f"{text}\n\n{KB_INDEX_LABEL} {base_url}/kb"
     return Draft(text=text, sources=sources)
 
 

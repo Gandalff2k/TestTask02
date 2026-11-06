@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+import re
 import secrets
 from collections import Counter
 from collections.abc import AsyncIterator
@@ -14,12 +15,28 @@ import httpx
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup, escape
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+
+_URL = re.compile(r"https?://[^\s<>\"']+")
+
+
+def _anchor(match: re.Match[str]) -> str:
+    url = match.group(0)
+    return f'<a href="{url}" target="_blank" rel="noopener">{url}</a>'
+
+
+def linkify(text: str) -> Markup:
+    # The text is escaped first, so only the anchors added here are raw HTML.
+    return Markup(_URL.sub(_anchor, str(escape(text))))  # noqa: S704
+
+
+templates.env.filters["linkify"] = linkify
 
 WEBHOOK_TIMEOUT_SECONDS = 2.0
 WEBHOOK_ATTEMPTS = 3

@@ -3,6 +3,7 @@ import json
 import pytest
 
 from app.drafts import (
+    KB_INDEX_LABEL,
     SOURCES_HEADING,
     DraftFormatError,
     ModelDraft,
@@ -80,6 +81,7 @@ def test_links_only_cited_known_articles_with_absolute_urls() -> None:
     ]
     assert draft.text == (
         f"Відповідь\n\n{SOURCES_HEADING}\n- Тарифи: https://support.example.com/kb/billing-plans"
+        f"\n\n{KB_INDEX_LABEL} https://support.example.com/kb"
     )
 
 
@@ -93,4 +95,4 @@ def test_no_found_articles_means_no_links() -> None:
     draft = compose_draft(ModelDraft(reply="Передаю спеціалісту"), [], BASE)
 
     assert draft.sources == []
-    assert draft.text == "Передаю спеціалісту"
+    assert draft.text == f"Передаю спеціалісту\n\n{KB_INDEX_LABEL} https://support.example.com/kb"

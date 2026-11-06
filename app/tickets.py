@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from typing import Any, cast
 
 from sqlalchemy import ColumnElement, CursorResult, and_, func, select, text, update
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Ticket, TicketStatus
@@ -28,20 +27,30 @@ class ClaimedTicket:
     lease: datetime
 
 
+# NOT EXISTS skips known duplicates before nextval(), so retries don't leave gaps in ids;
+# ON CONFLICT still settles the race between concurrent copies of a new event.
+_INSERT_TICKET_SQL = text(
+    """
+    INSERT INTO tickets (event_id, ticket_id, customer_email, message, reply_url)
+    SELECT :event_id, :ticket_id, :customer_email, :message, :reply_url
+    WHERE NOT EXISTS (SELECT 1 FROM tickets WHERE event_id = :event_id)
+    ON CONFLICT (event_id) DO NOTHING
+    RETURNING id
+    """
+)
+
+
 async def insert_ticket_if_new(session: AsyncSession, ticket: NewTicket) -> bool:
-    statement = (
-        insert(Ticket)
-        .values(
-            event_id=ticket.event_id,
-            ticket_id=ticket.ticket_id,
-            customer_email=ticket.customer_email,
-            message=ticket.message,
-            reply_url=ticket.reply_url,
-        )
-        .on_conflict_do_nothing(index_elements=[Ticket.event_id])
-        .returning(Ticket.id)
+    result = await session.execute(
+        _INSERT_TICKET_SQL,
+        {
+            "event_id": ticket.event_id,
+            "ticket_id": ticket.ticket_id,
+            "customer_email": ticket.customer_email,
+            "message": ticket.message,
+            "reply_url": ticket.reply_url,
+        },
     )
-    result = await session.execute(statement)
     return result.scalar_one_or_none() is not None
 
 

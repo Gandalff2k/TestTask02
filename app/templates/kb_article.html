@@ -1,7 +1,12 @@
 {% extends "base.html" %}
 {% block title %}{{ article.title }}{% endblock %}
+{% block nav %}{% include "kb_customer_nav.html" %}{% endblock %}
 {% block content %}
 <h1>{{ article.title }}</h1>
 <div class="text">{{ article.body }}</div>
 <p class="muted">Теги: {{ article.tags }}</p>
+<p>
+  <a class="button" href="/kb">← Уся база знань</a>
+  {% if support_portal_url %}<a class="button" href="{{ support_portal_url }}">Не допомогло? Кабінет підтримки</a>{% endif %}
+</p>
 {% endblock %}

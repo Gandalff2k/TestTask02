@@ -2,6 +2,7 @@ from pathlib import Path
 
 import httpx
 import pytest
+from fastapi import FastAPI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -198,3 +199,25 @@ async def test_kb_page_escapes_html(
     assert "<script>alert(1)</script>" not in response.text
     assert "&lt;script&gt;" in response.text
     assert "<b>b</b>" not in response.text
+
+
+async def test_kb_pages_show_customer_navigation_only(
+    client: httpx.AsyncClient, seeded: None
+) -> None:
+    for url in ("/kb", "/kb/export-pdf"):
+        page = (await client.get(url)).text
+
+        assert 'href="/tickets"' not in page
+        assert 'href="/kb"' in page
+        assert 'href="http://localhost:8001"' in page
+
+
+async def test_support_portal_button_is_optional(
+    app: FastAPI, client: httpx.AsyncClient, seeded: None
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"support_portal_url": None})
+
+    page = (await client.get("/kb/export-pdf")).text
+
+    assert "Кабінет підтримки" not in page
+    assert 'href="/kb"' in page

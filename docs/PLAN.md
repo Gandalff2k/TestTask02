@@ -15,7 +15,7 @@
 | 4 | Інтерфейс оператора | готово |
 | 5 | Мок хелпдеску і надсилання | готово |
 | 6 | Навантаження і відмови | готово |
-| 7 | README і деплой на AWS | далі |
+| 7 | README і деплой на AWS | готово |
 
 ## Етап 0. Каркас
 
@@ -156,6 +156,8 @@ docker compose logs worker --no-log-prefix | python scripts/llm_rate.py
 - `deploy/bootstrap.sh`: разове налаштування сервера (swap 2 ГБ, Docker з пакетів Ubuntu, клон репозиторію, `.env`).
 - `deploy/deploy.sh`: `git reset --hard origin/main`, `up -d --build`, перевірка здоров'я `api`.
 - `.github/workflows/ci-cd.yml`: на кожен push і PR лінтер, форматування, типи, тести, перевірка прод-compose. Push у `main` після зелених тестів деплоїть через SSH.
+
+Результат: сервіс на https://13-49-142-32.sslip.io (EC2 `t3.micro`, Elastic IP, Let's Encrypt), наскрізний сценарій з реальним Groq пройдено, автодеплой з GitHub Actions працює. Перша збірка на сервері впала, бо Docker з пакетів Ubuntu йде без `buildx`: `bootstrap.sh` тепер ставить `docker-buildx`, а `deploy.sh` збирає образ один раз. README перевірено на чистій копії без `.env`.
 
 Секрети GitHub: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`. `.env` на сервері живе лише там, CI його не чіпає.
 

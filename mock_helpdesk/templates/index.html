@@ -39,7 +39,7 @@
       <td>{{ reply.received_at.strftime("%H:%M:%S") }}</td>
       <td>{{ reply.ticket_id }}</td>
       <td>{{ reply.behaviour }}</td>
-      <td class="text">{{ reply.message }}</td>
+      <td class="text">{{ reply.message | linkify }}</td>
     </tr>
   {% endfor %}
   </tbody>
