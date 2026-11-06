@@ -1,0 +1,32 @@
+services:
+  caddy:
+    image: caddy:2.8.4-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_HOST: ${APP_HOST:?set APP_HOST in .env}
+      MOCK_HOST: ${MOCK_HOST:?set MOCK_HOST in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+      - mock-helpdesk
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  api:
+    ports: !reset []
+
+  mock-helpdesk:
+    ports: !reset []
+
+volumes:
+  caddy-data:
+  caddy-config:

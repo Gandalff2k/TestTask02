@@ -81,6 +81,7 @@ class OpenAICompatibleProvider:
             raise LLMRetryableError(
                 f"provider returned {status}",
                 retry_after_seconds=_parse_retry_after(response),
+                rate_limited=status == 429,
             )
         raise LLMPermanentError(f"provider returned {status}")
 

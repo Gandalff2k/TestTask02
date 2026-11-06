@@ -111,3 +111,13 @@ async def test_errors_do_not_leak_api_key() -> None:
         await provider.complete(REQUEST)
 
     assert "secret" not in str(exc_info.value)
+
+
+@pytest.mark.parametrize(("status", "rate_limited"), [(429, True), (503, False), (408, False)])
+async def test_only_429_is_marked_as_provider_rate_limit(status: int, rate_limited: bool) -> None:
+    provider = make_provider(lambda _: httpx.Response(status))
+
+    with pytest.raises(LLMRetryableError) as exc_info:
+        await provider.complete(REQUEST)
+
+    assert exc_info.value.rate_limited is rate_limited

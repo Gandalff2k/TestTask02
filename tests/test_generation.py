@@ -422,3 +422,38 @@ async def test_stop_waits_for_in_flight_generation(
 
     [stored] = await all_tickets(session_factory)
     assert stored.status == TicketStatus.PENDING_REVIEW
+
+
+async def test_provider_rate_limit_does_not_use_up_attempts(
+    session_factory: async_sessionmaker[AsyncSession], seeded: None
+) -> None:
+    await add_tickets(session_factory)
+    throttled = LLMRetryableError("provider returned 429", retry_after_seconds=3, rate_limited=True)
+    generation_worker = worker(session_factory, FakeProvider(throttled), max_attempts=3)
+
+    for _ in range(6):
+        [ticket] = await claim(session_factory, max_attempts=3)
+        await generation_worker.process(ticket)
+        await make_due(session_factory)
+
+    [stored] = await all_tickets(session_factory)
+    assert stored.status == TicketStatus.RECEIVED
+    assert stored.attempts == 0
+    assert "429" in (stored.last_error or "")
+
+
+async def test_ticket_succeeds_after_rate_limit_clears(
+    session_factory: async_sessionmaker[AsyncSession], seeded: None
+) -> None:
+    await add_tickets(session_factory)
+    throttled = LLMRetryableError("provider returned 429", retry_after_seconds=1, rate_limited=True)
+    generation_worker = worker(session_factory, FakeProvider(throttled, throttled, GOOD_OUTPUT))
+
+    for _ in range(3):
+        [ticket] = await claim(session_factory)
+        await generation_worker.process(ticket)
+        await make_due(session_factory)
+
+    [stored] = await all_tickets(session_factory)
+    assert stored.status == TicketStatus.PENDING_REVIEW
+    assert stored.attempts == 1

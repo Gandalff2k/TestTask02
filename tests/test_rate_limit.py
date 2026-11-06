@@ -4,8 +4,14 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.llm.base import LLMRequest, LLMResponse
-from app.llm.rate_limit import SLOT_MARGIN_SECONDS, PostgresRateLimiter, RateLimitedProvider
+from app.llm.base import LLMRequest, LLMResponse, LLMRetryableError
+from app.llm.rate_limit import (
+    DEFAULT_PAUSE_SECONDS,
+    MAX_PAUSE_SECONDS,
+    SLOT_MARGIN_SECONDS,
+    PostgresRateLimiter,
+    RateLimitedProvider,
+)
 
 
 class RecordingSleep:
@@ -90,3 +96,73 @@ async def test_provider_takes_a_slot_for_every_call() -> None:
     await provider.complete(LLMRequest(system="s", user="u"))
 
     assert events == ["slot", "call", "slot", "call"]
+
+
+async def test_pause_delays_every_limiter_sharing_the_database(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    sleep = RecordingSleep()
+    first = PostgresRateLimiter(session_factory, 60, sleep=sleep)
+    second = PostgresRateLimiter(session_factory, 60, sleep=sleep)
+
+    await first.pause(30)
+    await second.acquire()
+
+    assert sleep.calls == [pytest.approx(30, abs=0.5)]
+
+
+async def test_pause_never_shortens_an_existing_wait(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    sleep = RecordingSleep()
+    limiter = PostgresRateLimiter(session_factory, 60, sleep=sleep)
+
+    await limiter.pause(30)
+    await limiter.pause(5)
+    await limiter.acquire()
+
+    assert sleep.calls == [pytest.approx(30, abs=0.5)]
+
+
+class PausingLimiter:
+    def __init__(self) -> None:
+        self.pauses: list[float] = []
+
+    async def acquire(self) -> None:
+        return None
+
+    async def pause(self, seconds: float) -> None:
+        self.pauses.append(seconds)
+
+
+class FailingProvider:
+    def __init__(self, error: LLMRetryableError) -> None:
+        self.error = error
+
+    async def complete(self, request: LLMRequest) -> LLMResponse:
+        raise self.error
+
+
+@pytest.mark.parametrize(
+    ("error", "expected_pauses"),
+    [
+        (LLMRetryableError("429", retry_after_seconds=7, rate_limited=True), [7]),
+        (LLMRetryableError("429", rate_limited=True), [DEFAULT_PAUSE_SECONDS]),
+        (
+            LLMRetryableError("429", retry_after_seconds=86_400, rate_limited=True),
+            [MAX_PAUSE_SECONDS],
+        ),
+        (LLMRetryableError("503", retry_after_seconds=7), []),
+    ],
+    ids=["retry_after", "no_header", "capped", "server_error"],
+)
+async def test_rate_limit_pauses_everyone_and_reraises(
+    error: LLMRetryableError, expected_pauses: list[float]
+) -> None:
+    limiter = PausingLimiter()
+    provider = RateLimitedProvider(FailingProvider(error), limiter)
+
+    with pytest.raises(LLMRetryableError):
+        await provider.complete(LLMRequest(system="s", user="u"))
+
+    assert limiter.pauses == expected_pauses

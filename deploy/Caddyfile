@@ -1,0 +1,9 @@
+{$APP_HOST} {
+	encode gzip
+	reverse_proxy api:8000
+}
+
+{$MOCK_HOST} {
+	encode gzip
+	reverse_proxy mock-helpdesk:8001
+}

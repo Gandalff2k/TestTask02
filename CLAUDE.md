@@ -44,6 +44,7 @@ docker compose run --rm test alembic revision --autogenerate -m "опис"   # �
 - `app/llm/`: замінний інтерфейс LLM-провайдера.
 - `mock_helpdesk/`: мок зовнішнього хелпдеску, окремий контейнер. Приймає відповіді з керованими відмовами, веде журнал з підрахунком дублікатів, має форму створення звернення.
 - `migrations/`: Alembic, єдине джерело схеми БД.
+- `compose.prod.yaml`, `deploy/`, `.github/workflows/ci-cd.yml`: прод-деплой з Caddy, скрипти сервера, CI з автодеплоєм на push у `main`.
 
 Черга живе в Postgres. Redis і брокер не додавати: вони не потрібні при цьому навантаженні, а Postgres уже є джерелом правди.
 

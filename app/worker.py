@@ -200,7 +200,9 @@ class GenerationWorker(QueueWorker[ClaimedTicket]):
         logger.warning("generation_failed ticket_id=%r error=%s", ticket.ticket_id, describe(exc))
 
     async def _retry(self, ticket: ClaimedTicket, exc: BaseException) -> None:
-        if ticket.attempts >= self._config.max_attempts:
+        # A provider-wide rate limit says nothing about this ticket, so it must not use up attempts.
+        rate_limited = isinstance(exc, LLMRetryableError) and exc.rate_limited
+        if ticket.attempts >= self._config.max_attempts and not rate_limited:
             await self._fail(ticket, exc)
             return
         if isinstance(exc, LLMRetryableError) and exc.retry_after_seconds is not None:
@@ -213,7 +215,10 @@ class GenerationWorker(QueueWorker[ClaimedTicket]):
                 self._rng,
             )
         await self._write(
-            ticket.ticket_id, lambda s: reschedule_generation(s, ticket, delay, describe(exc))
+            ticket.ticket_id,
+            lambda s: reschedule_generation(
+                s, ticket, delay, describe(exc), refund_attempt=rate_limited
+            ),
         )
         logger.warning(
             "generation_retry_scheduled ticket_id=%r delay=%.1f error=%s",

@@ -10,3 +10,4 @@ __pycache__
 docs
 README.md
 CLAUDE.md
+*.pem

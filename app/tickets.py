@@ -131,14 +131,20 @@ async def save_draft(
 
 
 async def reschedule_generation(
-    session: AsyncSession, ticket: ClaimedTicket, delay_seconds: float, error: str
+    session: AsyncSession,
+    ticket: ClaimedTicket,
+    delay_seconds: float,
+    error: str,
+    refund_attempt: bool = False,
 ) -> bool:
+    refund = {"attempts": Ticket.attempts - 1} if refund_attempt else {}
     return await _update_generating(
         session,
         ticket,
         status=TicketStatus.RECEIVED,
         next_attempt_at=func.now() + timedelta(seconds=delay_seconds),
         last_error=error,
+        **refund,
     )
 
 
