@@ -15,7 +15,7 @@ fi
 
 if ! command -v docker >/dev/null; then
   sudo apt-get update
-  sudo apt-get install -y docker.io docker-compose-v2 git curl
+  sudo apt-get install -y docker.io docker-compose-v2 docker-buildx git curl
   sudo systemctl enable --now docker
   sudo usermod -aG docker "$USER"
 fi

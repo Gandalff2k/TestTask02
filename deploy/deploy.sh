@@ -9,7 +9,8 @@ cd "$APP_DIR"
 git fetch --prune origin main
 git reset --hard origin/main
 
-"${COMPOSE[@]}" up -d --build --remove-orphans
+"${COMPOSE[@]}" build api
+"${COMPOSE[@]}" up -d --remove-orphans
 docker image prune -f >/dev/null
 
 for _ in $(seq 1 30); do
