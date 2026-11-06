@@ -7,3 +7,8 @@
 	encode gzip
 	reverse_proxy mock-helpdesk:8001
 }
+
+# Requests to the bare IP (or any other host) cannot get a certificate, so send them to the real name.
+http:// {
+	redir https://{$APP_HOST}{uri} permanent
+}
